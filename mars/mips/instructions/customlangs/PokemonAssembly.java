@@ -134,11 +134,11 @@ public class PokemonAssembly extends CustomAssembly {
             new BasicInstruction("li $t1, 100",
                 "Load immediate: set $t1 to immediate",
                 BasicInstructionFormat.I_FORMAT,
-                "010000 00000 fffff tttttttttttttttt",
+                "010000 00000 fffff ssssssssssssssss",
                 new SimulationCode() {
                     public void simulate(ProgramStatement statement) throws ProcessingException {
                         int[] operands = statement.getOperands();
-                        int imm = operands[2] << 16 >> 16;
+                        int imm = operands[1] << 16 >> 16;
                         RegisterFile.updateRegister(operands[0], imm);
                     }
                 }));
@@ -175,22 +175,6 @@ public class PokemonAssembly extends CustomAssembly {
                             RegisterFile.updateRegister(8, 0);
                         }
                         int newHP = targetHP - attack;
-                        if (newHP < 0) newHP = 0;
-                        RegisterFile.updateRegister(operands[0], newHP);
-                    }
-                }));
-
-        instructionList.add(
-            new BasicInstruction("dmg_taken $t1,$t2",
-                "Damage taken: subtract defense ($t2) from target HP ($t1)",
-                BasicInstructionFormat.R_FORMAT,
-                "001001 sssss ttttt fffff 00000 000000",
-                new SimulationCode() {
-                    public void simulate(ProgramStatement statement) throws ProcessingException {
-                        int[] operands = statement.getOperands();
-                        int targetHP = RegisterFile.getValue(operands[1]);
-                        int defense = RegisterFile.getValue(operands[2]);
-                        int newHP = targetHP - defense;
                         if (newHP < 0) newHP = 0;
                         RegisterFile.updateRegister(operands[0], newHP);
                     }
@@ -248,30 +232,16 @@ public class PokemonAssembly extends CustomAssembly {
                 }));
 
         instructionList.add(
-            new BasicInstruction("hp_up $t1, 100",
-                "HP up: add immediate to HP (R1)",
-                BasicInstructionFormat.I_FORMAT,
-                "010010 00001 00001 tttttttttttttttt",
-                new SimulationCode() {
-                    public void simulate(ProgramStatement statement) throws ProcessingException {
-                        int[] operands = statement.getOperands();
-                        int imm = operands[2] << 16 >> 16;
-                        int hp = RegisterFile.getValue(1);
-                        RegisterFile.updateRegister(1, hp + imm);
-                    }
-                }));
-
-        instructionList.add(
             new BasicInstruction("heal $t1, 100",
-                "Heal: add immediate to HP (R1)",
+                "Heal: add immediate to HP in register $t1",
                 BasicInstructionFormat.I_FORMAT,
-                "010011 00001 00001 tttttttttttttttt",
+                "010011 sssss fffff tttttttttttttttt",
                 new SimulationCode() {
                     public void simulate(ProgramStatement statement) throws ProcessingException {
                         int[] operands = statement.getOperands();
                         int imm = operands[2] << 16 >> 16;
-                        int hp = RegisterFile.getValue(1);
-                        RegisterFile.updateRegister(1, hp + imm);
+                        int hp = RegisterFile.getValue(operands[0]);
+                        RegisterFile.updateRegister(operands[0], hp + imm);
                     }
                 }));
 
@@ -279,13 +249,13 @@ public class PokemonAssembly extends CustomAssembly {
             new BasicInstruction("stat_up $t1, 100",
                 "Stat up: add immediate to given stat (rs)",
                 BasicInstructionFormat.I_FORMAT,
-                "010100 sssss 00000 tttttttttttttttt",
+                "010100 fffff 00000 ssssssssssssssss",
                 new SimulationCode() {
                     public void simulate(ProgramStatement statement) throws ProcessingException {
                         int[] operands = statement.getOperands();
-                        int imm = operands[2] << 16 >> 16;
-                        int current = RegisterFile.getValue(operands[1]);
-                        RegisterFile.updateRegister(operands[1], current + imm);
+                        int imm = operands[1] << 16 >> 16;
+                        int current = RegisterFile.getValue(operands[0]);
+                        RegisterFile.updateRegister(operands[0], current + imm);
                     }
                 }));
 
@@ -293,29 +263,16 @@ public class PokemonAssembly extends CustomAssembly {
             new BasicInstruction("stat_down $t1, 100",
                 "Stat down: subtract immediate from given stat (rs)",
                 BasicInstructionFormat.I_FORMAT,
-                "010101 sssss 00000 tttttttttttttttt",
+                "010101 fffff 00000 ssssssssssssssss",
                 new SimulationCode() {
                     public void simulate(ProgramStatement statement) throws ProcessingException {
                         int[] operands = statement.getOperands();
-                        int imm = operands[2] << 16 >> 16;
-                        int current = RegisterFile.getValue(operands[1]);
-                        RegisterFile.updateRegister(operands[1], current - imm);
+                        int imm = operands[1] << 16 >> 16;
+                        int current = RegisterFile.getValue(operands[0]);
+                        RegisterFile.updateRegister(operands[0], current - imm);
                     }
                 }));
 
-        instructionList.add(
-            new BasicInstruction("show_battle $t1,$t2",
-                "Display ASCII battle based on IDs in $t1 and $t2",
-                BasicInstructionFormat.R_FORMAT,
-                "001110 sssss ttttt fffff 00000 000000",
-                new SimulationCode() {
-                    public void simulate(ProgramStatement statement) throws ProcessingException {
-                        int[] operands = statement.getOperands();
-                        int id1 = RegisterFile.getValue(operands[0]);
-                        int id2 = RegisterFile.getValue(operands[1]);
-                        PokemonArtPrinter.printBattle(id1, id2);
-                    }
-                }));
     }
 
 }
