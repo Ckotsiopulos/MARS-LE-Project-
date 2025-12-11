@@ -275,22 +275,18 @@ public class PokemonAssembly extends CustomAssembly {
                 }));
 
         instructionList.add(
-            new BasicInstruction("encounter $t1,$t2,$t3",
-                "Encounter: finds a Pokemon and attempts catch. $t1 = pokeball type (0=Poke, 1=Great, 2=Ultra, 3=Master), $t2 = Pokemon ID (output), $t3 = caught (output)",
+            new BasicInstruction("encounter $t1,$t2",
+                "Encounter: finds a Pokemon and attempts catch. $t1 = pokeball type (0=Poke, 1=Great, 2=Ultra, 3=Master), $t2 = caught (output)",
                 BasicInstructionFormat.R_FORMAT,
-                "010110 sssss ttttt fffff 00000 000000",
+                "010110 sssss ttttt 00000 00000 000000",
                 new SimulationCode() {
                     public void simulate(ProgramStatement statement) throws ProcessingException {
                         int[] operands = statement.getOperands();
 
-
                         int pokeballType = RegisterFile.getValue(operands[0]);
-                        int regPoke   = operands[1];
-                        int regCaught = operands[2];
+                        int regCaught = operands[1];
                         
-
                         int regRarity = 10;
-
 
                         java.util.Random rng = new java.util.Random();
 
@@ -300,15 +296,6 @@ public class PokemonAssembly extends CustomAssembly {
                         else if (roll < 70) rarity = 1;
                         else if (roll < 90) rarity = 2;
                         else rarity = 3;
-
-                        int pokemonId;
-                        switch (rarity) {
-                            case 0: pokemonId = rng.nextInt(50); break;
-                            case 1: pokemonId = 50 + rng.nextInt(50); break;
-                            case 2: pokemonId = 100 + rng.nextInt(30); break;
-                            case 3: pokemonId = 130 + rng.nextInt(21); break;
-                            default: pokemonId = 0;
-                        }
 
                         int baseCatchChance;
                         switch (rarity) {
@@ -346,10 +333,8 @@ public class PokemonAssembly extends CustomAssembly {
 
                         int catchChance;
                         if (pokeballType == 3) {
-
                             catchChance = 100;
                         } else {
-
                             catchChance = (int)(baseCatchChance * pokeballMultiplier);
                             if (catchChance > 95) catchChance = 95;
                         }
@@ -357,7 +342,6 @@ public class PokemonAssembly extends CustomAssembly {
                         int catchRoll = rng.nextInt(100);
                         int caught = (catchRoll < catchChance) ? 1 : 0;
 
-                        RegisterFile.updateRegister(regPoke,   pokemonId);
                         RegisterFile.updateRegister(regRarity, rarity);
                         RegisterFile.updateRegister(regCaught, caught);
 
@@ -370,7 +354,7 @@ public class PokemonAssembly extends CustomAssembly {
                             default: rarityName = "UNKNOWN"; break;
                         }
                         mars.util.SystemIO.printString(
-                            "You encountered a " + rarityName + " Pokemon (ID " + pokemonId + ")!\n"
+                            "You encountered a " + rarityName + " Pokemon!\n"
                         );
                         mars.util.SystemIO.printString(
                             "You used a " + pokeballName + "!\n"
@@ -406,23 +390,20 @@ public class PokemonAssembly extends CustomAssembly {
 
 
         instructionList.add(
-            new BasicInstruction("encounter_input $t1,$t2",
-                "Encounter with user input: reveals Pokemon rarity, shows inventory, prompts for pokeball (0-3) or run (4), then attempts catch. $t1 = Pokemon ID (output), $t2 = caught (output)",
+            new BasicInstruction("encounter_input $t1",
+                "Encounter with user input: reveals Pokemon rarity, shows inventory, prompts for pokeball (0-3) or run (4), then attempts catch. $t1 = caught (output)",
                 BasicInstructionFormat.R_FORMAT,
-                "010111 sssss ttttt fffff 00000 000000",
+                "010111 sssss 00000 00000 00000 000000",
                 new SimulationCode() {
                     public void simulate(ProgramStatement statement) throws ProcessingException {
                         int[] operands = statement.getOperands();
-                        int regPoke = operands[0];
-                        int regCaught = operands[1];
+                        int regCaught = operands[0];
                         
-
                         int pokeBalls = RegisterFile.getValue(12);
                         int greatBalls = RegisterFile.getValue(13);
                         int ultraBalls = RegisterFile.getValue(14);
                         int masterBalls = RegisterFile.getValue(15);
                         
-
                         if (pokeBalls == 0 && greatBalls == 0 && ultraBalls == 0 && masterBalls == 0) {
                             pokeBalls = 10;
                             greatBalls = 8;
@@ -443,15 +424,6 @@ public class PokemonAssembly extends CustomAssembly {
                         else if (roll < 90) rarity = 2;
                         else rarity = 3;
 
-                        int pokemonId;
-                        switch (rarity) {
-                            case 0: pokemonId = rng.nextInt(50); break;
-                            case 1: pokemonId = 50 + rng.nextInt(50); break;
-                            case 2: pokemonId = 100 + rng.nextInt(30); break;
-                            case 3: pokemonId = 130 + rng.nextInt(21); break;
-                            default: pokemonId = 0;
-                        }
-
                         String rarityName;
                         switch (rarity) {
                             case 0: rarityName = "COMMON"; break;
@@ -462,7 +434,7 @@ public class PokemonAssembly extends CustomAssembly {
                         }
                         
                         SystemIO.printString("\nPOKEMON ENCOUNTER: \n");
-                        SystemIO.printString("You encountered a " + rarityName + " Pokemon (ID " + pokemonId + ")!\n");
+                        SystemIO.printString("You encountered a " + rarityName + " Pokemon!\n");
                         SystemIO.printString("\n Your Inventory: \n");
                         SystemIO.printString("  Poke Balls: " + pokeBalls + "\n");
                         SystemIO.printString("  Great Balls: " + greatBalls + "\n");
@@ -470,7 +442,6 @@ public class PokemonAssembly extends CustomAssembly {
                         SystemIO.printString("  Master Balls: " + masterBalls + "\n");
                         SystemIO.printString("\nChoose your action:\n");
                         
-
                         if (pokeBalls > 0) {
                             SystemIO.printString("  0 = Poke Ball   (1.0x catch rate) - Available: " + pokeBalls + "\n");
                         } else {
@@ -513,16 +484,13 @@ public class PokemonAssembly extends CustomAssembly {
                             ranAway = true;
                         }
                         
-
                         if (ranAway) {
-                            RegisterFile.updateRegister(regPoke, pokemonId);
                             RegisterFile.updateRegister(10, rarity);
                             RegisterFile.updateRegister(regCaught, 0);
                             SystemIO.printString("You ran away from the " + rarityName + " Pokemon!\n");
                             return;
                         }
                         
-
                         boolean available = false;
                         switch (pokeballType) {
                             case 0: available = (pokeBalls > 0); break;
@@ -533,13 +501,11 @@ public class PokemonAssembly extends CustomAssembly {
                         
                         if (!available) {
                             SystemIO.printString("You don't have that pokeball! Running away...\n");
-                            RegisterFile.updateRegister(regPoke, pokemonId);
                             RegisterFile.updateRegister(10, rarity);
                             RegisterFile.updateRegister(regCaught, 0);
                             return;
                         }
                         
-
                         switch (pokeballType) {
                             case 0: 
                                 pokeBalls--;
@@ -559,9 +525,6 @@ public class PokemonAssembly extends CustomAssembly {
                                 break;
                         }
                         
-
-
-
                         int baseCatchChance;
                         switch (rarity) {
                             case 0: baseCatchChance = 90; break;
@@ -607,7 +570,6 @@ public class PokemonAssembly extends CustomAssembly {
                         int catchRoll = rng.nextInt(100);
                         int caught = (catchRoll < catchChance) ? 1 : 0;
 
-                        RegisterFile.updateRegister(regPoke, pokemonId);
                         RegisterFile.updateRegister(10, rarity);
                         RegisterFile.updateRegister(regCaught, caught);
 
