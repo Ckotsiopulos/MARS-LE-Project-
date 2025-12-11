@@ -2,6 +2,7 @@ package mars.mips.instructions.customlangs;
     import mars.mips.hardware.*;
     import mars.*;
     import mars.mips.instructions.*;
+    import mars.util.SystemIO;
 
 public class PokemonAssembly extends CustomAssembly {
     @Override
@@ -270,6 +271,357 @@ public class PokemonAssembly extends CustomAssembly {
                         int imm = operands[1] << 16 >> 16;
                         int current = RegisterFile.getValue(operands[0]);
                         RegisterFile.updateRegister(operands[0], current - imm);
+                    }
+                }));
+
+        instructionList.add(
+            new BasicInstruction("encounter $t1,$t2,$t3",
+                "Encounter: finds a Pokemon and attempts catch. $t1 = pokeball type (0=Poke, 1=Great, 2=Ultra, 3=Master), $t2 = Pokemon ID (output), $t3 = caught (output)",
+                BasicInstructionFormat.R_FORMAT,
+                "010110 sssss ttttt fffff 00000 000000",
+                new SimulationCode() {
+                    public void simulate(ProgramStatement statement) throws ProcessingException {
+                        int[] operands = statement.getOperands();
+
+
+                        int pokeballType = RegisterFile.getValue(operands[0]);
+                        int regPoke   = operands[1];
+                        int regCaught = operands[2];
+                        
+
+                        int regRarity = 10;
+
+
+                        java.util.Random rng = new java.util.Random();
+
+                        int roll = rng.nextInt(100);
+                        int rarity;
+                        if (roll < 40) rarity = 0;
+                        else if (roll < 70) rarity = 1;
+                        else if (roll < 90) rarity = 2;
+                        else rarity = 3;
+
+                        int pokemonId;
+                        switch (rarity) {
+                            case 0: pokemonId = rng.nextInt(50); break;
+                            case 1: pokemonId = 50 + rng.nextInt(50); break;
+                            case 2: pokemonId = 100 + rng.nextInt(30); break;
+                            case 3: pokemonId = 130 + rng.nextInt(21); break;
+                            default: pokemonId = 0;
+                        }
+
+                        int baseCatchChance;
+                        switch (rarity) {
+                            case 0: baseCatchChance = 90; break;
+                            case 1: baseCatchChance = 70; break;
+                            case 2: baseCatchChance = 50; break;
+                            case 3: baseCatchChance = 25; break;
+                            default: baseCatchChance = 0;
+                        }
+
+                        double pokeballMultiplier;
+                        String pokeballName;
+                        switch (pokeballType) {
+                            case 0: 
+                                pokeballMultiplier = 1.0; 
+                                pokeballName = "Poke Ball";
+                                break;
+                            case 1: 
+                                pokeballMultiplier = 1.5; 
+                                pokeballName = "Great Ball";
+                                break;
+                            case 2: 
+                                pokeballMultiplier = 2.0; 
+                                pokeballName = "Ultra Ball";
+                                break;
+                            case 3: 
+                                pokeballMultiplier = 100.0;
+                                pokeballName = "Master Ball";
+                                break;
+                            default: 
+                                pokeballMultiplier = 1.0; 
+                                pokeballName = "Poke Ball";
+                                break;
+                        }
+
+                        int catchChance;
+                        if (pokeballType == 3) {
+
+                            catchChance = 100;
+                        } else {
+
+                            catchChance = (int)(baseCatchChance * pokeballMultiplier);
+                            if (catchChance > 95) catchChance = 95;
+                        }
+
+                        int catchRoll = rng.nextInt(100);
+                        int caught = (catchRoll < catchChance) ? 1 : 0;
+
+                        RegisterFile.updateRegister(regPoke,   pokemonId);
+                        RegisterFile.updateRegister(regRarity, rarity);
+                        RegisterFile.updateRegister(regCaught, caught);
+
+                        String rarityName;
+                        switch (rarity) {
+                            case 0: rarityName = "COMMON"; break;
+                            case 1: rarityName = "UNCOMMON"; break;
+                            case 2: rarityName = "RARE"; break;
+                            case 3: rarityName = "LEGENDARY"; break;
+                            default: rarityName = "UNKNOWN"; break;
+                        }
+                        mars.util.SystemIO.printString(
+                            "You encountered a " + rarityName + " Pokemon (ID " + pokemonId + ")!\n"
+                        );
+                        mars.util.SystemIO.printString(
+                            "You used a " + pokeballName + "!\n"
+                        );
+
+                        if (caught == 1)
+                            mars.util.SystemIO.printString("You caught it!\n");
+                        else
+                            mars.util.SystemIO.printString("It broke free...\n");
+                    }
+                }));
+
+
+        instructionList.add(
+            new BasicInstruction("init_inventory",
+                "Initialize pokeball inventory: 10 Poke Balls, 8 Great Balls, 3 Ultra Balls, 1 Master Ball. Stores in R12-R15",
+                BasicInstructionFormat.R_FORMAT,
+                "011000 00000 00000 00000 00000 000000",
+                new SimulationCode() {
+                    public void simulate(ProgramStatement statement) throws ProcessingException {
+
+                        RegisterFile.updateRegister(12, 10);
+                        RegisterFile.updateRegister(13, 8);
+                        RegisterFile.updateRegister(14, 3);
+                        RegisterFile.updateRegister(15, 1);
+                        SystemIO.printString("Pokeball inventory initialized!\n");
+                        SystemIO.printString("  Poke Balls: 10\n");
+                        SystemIO.printString("  Great Balls: 8\n");
+                        SystemIO.printString("  Ultra Balls: 3\n");
+                        SystemIO.printString("  Master Balls: 1\n\n");
+                    }
+                }));
+
+
+        instructionList.add(
+            new BasicInstruction("encounter_input $t1,$t2",
+                "Encounter with user input: reveals Pokemon rarity, shows inventory, prompts for pokeball (0-3) or run (4), then attempts catch. $t1 = Pokemon ID (output), $t2 = caught (output)",
+                BasicInstructionFormat.R_FORMAT,
+                "010111 sssss ttttt fffff 00000 000000",
+                new SimulationCode() {
+                    public void simulate(ProgramStatement statement) throws ProcessingException {
+                        int[] operands = statement.getOperands();
+                        int regPoke = operands[0];
+                        int regCaught = operands[1];
+                        
+
+                        int pokeBalls = RegisterFile.getValue(12);
+                        int greatBalls = RegisterFile.getValue(13);
+                        int ultraBalls = RegisterFile.getValue(14);
+                        int masterBalls = RegisterFile.getValue(15);
+                        
+
+                        if (pokeBalls == 0 && greatBalls == 0 && ultraBalls == 0 && masterBalls == 0) {
+                            pokeBalls = 10;
+                            greatBalls = 8;
+                            ultraBalls = 3;
+                            masterBalls = 1;
+                            RegisterFile.updateRegister(12, 10);
+                            RegisterFile.updateRegister(13, 8);
+                            RegisterFile.updateRegister(14, 3);
+                            RegisterFile.updateRegister(15, 1);
+                        }
+
+                        java.util.Random rng = new java.util.Random();
+   
+                        int roll = rng.nextInt(100);
+                        int rarity;
+                        if (roll < 40) rarity = 0;
+                        else if (roll < 70) rarity = 1;
+                        else if (roll < 90) rarity = 2;
+                        else rarity = 3;
+
+                        int pokemonId;
+                        switch (rarity) {
+                            case 0: pokemonId = rng.nextInt(50); break;
+                            case 1: pokemonId = 50 + rng.nextInt(50); break;
+                            case 2: pokemonId = 100 + rng.nextInt(30); break;
+                            case 3: pokemonId = 130 + rng.nextInt(21); break;
+                            default: pokemonId = 0;
+                        }
+
+                        String rarityName;
+                        switch (rarity) {
+                            case 0: rarityName = "COMMON"; break;
+                            case 1: rarityName = "UNCOMMON"; break;
+                            case 2: rarityName = "RARE"; break;
+                            case 3: rarityName = "LEGENDARY"; break;
+                            default: rarityName = "UNKNOWN"; break;
+                        }
+                        
+                        SystemIO.printString("\nPOKEMON ENCOUNTER: \n");
+                        SystemIO.printString("You encountered a " + rarityName + " Pokemon (ID " + pokemonId + ")!\n");
+                        SystemIO.printString("\n Your Inventory: \n");
+                        SystemIO.printString("  Poke Balls: " + pokeBalls + "\n");
+                        SystemIO.printString("  Great Balls: " + greatBalls + "\n");
+                        SystemIO.printString("  Ultra Balls: " + ultraBalls + "\n");
+                        SystemIO.printString("  Master Balls: " + masterBalls + "\n");
+                        SystemIO.printString("\nChoose your action:\n");
+                        
+
+                        if (pokeBalls > 0) {
+                            SystemIO.printString("  0 = Poke Ball   (1.0x catch rate) - Available: " + pokeBalls + "\n");
+                        } else {
+                            SystemIO.printString("  0 = Poke Ball   - OUT OF STOCK\n");
+                        }
+                        if (greatBalls > 0) {
+                            SystemIO.printString("  1 = Great Ball  (1.5x catch rate) - Available: " + greatBalls + "\n");
+                        } else {
+                            SystemIO.printString("  1 = Great Ball  - OUT OF STOCK\n");
+                        }
+                        if (ultraBalls > 0) {
+                            SystemIO.printString("  2 = Ultra Ball  (2.0x catch rate) - Available: " + ultraBalls + "\n");
+                        } else {
+                            SystemIO.printString("  2 = Ultra Ball  - OUT OF STOCK\n");
+                        }
+                        if (masterBalls > 0) {
+                            SystemIO.printString("  3 = Master Ball (100% catch rate) - Available: " + masterBalls + "\n");
+                        } else {
+                            SystemIO.printString("  3 = Master Ball - OUT OF STOCK\n");
+                        }
+                        SystemIO.printString("  4 = Run Away (don't use any balls)\n");
+                        SystemIO.printString("Enter your choice (0-4): ");
+   
+                        String input = SystemIO.readString(8, 10);
+                        int pokeballType = -1;
+                        boolean ranAway = false;
+                        try {
+                            int choice = Integer.parseInt(input.trim());
+                            if (choice == 4) {
+                                ranAway = true;
+                                pokeballType = -1;
+                            } else if (choice >= 0 && choice <= 3) {
+                                pokeballType = choice;
+                            } else {
+                                SystemIO.printString("Invalid choice! Running away...\n");
+                                ranAway = true;
+                            }
+                        } catch (NumberFormatException e) {
+                            SystemIO.printString("Invalid input! Running away...\n");
+                            ranAway = true;
+                        }
+                        
+
+                        if (ranAway) {
+                            RegisterFile.updateRegister(regPoke, pokemonId);
+                            RegisterFile.updateRegister(10, rarity);
+                            RegisterFile.updateRegister(regCaught, 0);
+                            SystemIO.printString("You ran away from the " + rarityName + " Pokemon!\n");
+                            return;
+                        }
+                        
+
+                        boolean available = false;
+                        switch (pokeballType) {
+                            case 0: available = (pokeBalls > 0); break;
+                            case 1: available = (greatBalls > 0); break;
+                            case 2: available = (ultraBalls > 0); break;
+                            case 3: available = (masterBalls > 0); break;
+                        }
+                        
+                        if (!available) {
+                            SystemIO.printString("You don't have that pokeball! Running away...\n");
+                            RegisterFile.updateRegister(regPoke, pokemonId);
+                            RegisterFile.updateRegister(10, rarity);
+                            RegisterFile.updateRegister(regCaught, 0);
+                            return;
+                        }
+                        
+
+                        switch (pokeballType) {
+                            case 0: 
+                                pokeBalls--;
+                                RegisterFile.updateRegister(12, pokeBalls);
+                                break;
+                            case 1: 
+                                greatBalls--;
+                                RegisterFile.updateRegister(13, greatBalls);
+                                break;
+                            case 2: 
+                                ultraBalls--;
+                                RegisterFile.updateRegister(14, ultraBalls);
+                                break;
+                            case 3: 
+                                masterBalls--;
+                                RegisterFile.updateRegister(15, masterBalls);
+                                break;
+                        }
+                        
+
+
+
+                        int baseCatchChance;
+                        switch (rarity) {
+                            case 0: baseCatchChance = 90; break;
+                            case 1: baseCatchChance = 70; break;
+                            case 2: baseCatchChance = 50; break;
+                            case 3: baseCatchChance = 25; break;
+                            default: baseCatchChance = 0;
+                        }
+
+                        double pokeballMultiplier;
+                        String pokeballName;
+                        switch (pokeballType) {
+                            case 0: 
+                                pokeballMultiplier = 1.0; 
+                                pokeballName = "Poke Ball";
+                                break;
+                            case 1: 
+                                pokeballMultiplier = 1.5; 
+                                pokeballName = "Great Ball";
+                                break;
+                            case 2: 
+                                pokeballMultiplier = 2.0; 
+                                pokeballName = "Ultra Ball";
+                                break;
+                            case 3: 
+                                pokeballMultiplier = 100.0;
+                                pokeballName = "Master Ball";
+                                break;
+                            default: 
+                                pokeballMultiplier = 1.0; 
+                                pokeballName = "Poke Ball";
+                                break;
+                        }
+                        
+                        int catchChance;
+                        if (pokeballType == 3) {
+                            catchChance = 100;
+                        } else {
+                            catchChance = (int)(baseCatchChance * pokeballMultiplier);
+                            if (catchChance > 95) catchChance = 95;
+                        }
+                        
+                        int catchRoll = rng.nextInt(100);
+                        int caught = (catchRoll < catchChance) ? 1 : 0;
+
+                        RegisterFile.updateRegister(regPoke, pokemonId);
+                        RegisterFile.updateRegister(10, rarity);
+                        RegisterFile.updateRegister(regCaught, caught);
+
+                        SystemIO.printString("\nYou used a " + pokeballName + "!\n");
+                        if (caught == 1)
+                            SystemIO.printString("You caught it!\n");
+                        else
+                            SystemIO.printString("It broke free...\n");
+                        SystemIO.printString("\nRemaining inventory:\n");
+                        SystemIO.printString("  Poke Balls: " + pokeBalls + "\n");
+                        SystemIO.printString("  Great Balls: " + greatBalls + "\n");
+                        SystemIO.printString("  Ultra Balls: " + ultraBalls + "\n");
+                        SystemIO.printString("  Master Balls: " + masterBalls + "\n");
+                       
                     }
                 }));
 
