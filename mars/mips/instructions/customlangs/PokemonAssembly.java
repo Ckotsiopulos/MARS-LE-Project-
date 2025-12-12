@@ -278,7 +278,7 @@ public class PokemonAssembly extends CustomAssembly {
             new BasicInstruction("encounter $t1,$t2",
                 "Encounter: finds a Pokemon and attempts catch. $t1 = pokeball type (0=Poke, 1=Great, 2=Ultra, 3=Master), $t2 = caught (output)",
                 BasicInstructionFormat.R_FORMAT,
-                "010110 sssss ttttt 00000 00000 000000",
+                "010110 sssss 00000 fffff 00000 000000",
                 new SimulationCode() {
                     public void simulate(ProgramStatement statement) throws ProcessingException {
                         int[] operands = statement.getOperands();
@@ -393,7 +393,7 @@ public class PokemonAssembly extends CustomAssembly {
             new BasicInstruction("encounter_input $t1",
                 "Encounter with user input: reveals Pokemon rarity, shows inventory, prompts for pokeball (0-3) or run (4), then attempts catch. $t1 = caught (output)",
                 BasicInstructionFormat.R_FORMAT,
-                "010111 sssss 00000 00000 00000 000000",
+                "010111 00000 00000 fffff 00000 000000",
                 new SimulationCode() {
                     public void simulate(ProgramStatement statement) throws ProcessingException {
                         int[] operands = statement.getOperands();
